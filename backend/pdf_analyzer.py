@@ -5,6 +5,7 @@ import tempfile
 import re
 import numpy as np
 from PIL import Image
+import fitz
 
 
 def get_gs_executable():
@@ -45,6 +46,9 @@ def analyze_pdf_coverage(pdf_path: str):
     """
     gs_exe = get_gs_executable()
     report = {"summary": {}, "pages": []}
+    
+    with fitz.open(pdf_path) as doc:
+        total_pdf_pages = len(doc)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         # Pauta de salida para Ghostscript
@@ -61,6 +65,7 @@ def analyze_pdf_coverage(pdf_path: str):
             "-dNOPAUSE",
             "-dBATCH",
             "-dQUIET",
+            "-dUseTrimBox",
             "-r72",  # 72 dpi acelera enormemente el cómputo y brinda precisión de 98%+ real.
             f"-sOutputFile={output_pattern}",
             pdf_path,
@@ -119,7 +124,8 @@ def analyze_pdf_coverage(pdf_path: str):
             {"page_number": page_num, "separations": pages_data[page_num]}
         )
 
+    total_pages = total_pdf_pages
     for sep, total in total_separations_coverage.items():
-        report["summary"][sep] = total / separation_counts[sep]
+        report["summary"][sep] = total / total_pages
 
     return report
